@@ -1,8 +1,8 @@
 {
-	"name": "commit-kanbanize-id",
-	"displayName": "Commit Kanbanize ID",
-	"description": "Prompt for a Kanbanize card ID on commit.",
-	"publisher": "Brennan Toles",
+	"name": "commit-work-item",
+	"displayName": "Commit Work Item",
+	"description": "Prompt for a Work Item card ID on commit.",
+	"publisher": "toles",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.42.0"
@@ -14,31 +14,35 @@
 		"*"
 	],
 	"main": "./out/extension.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/btoles/kanbanize-commit"
+	},
 	"contributes": {
 		"commands": [
 			{
 				"command": "kbn-git.commit",
-				"title": "Commit - Kanbanize",
+				"title": "Commit - Work Item",
 				"category": "Git"
 			},
 			{
 				"command": "kbn-git.commitStaged",
-				"title": "Commit Staged - Kanbanize",
+				"title": "Commit Staged - Work Item",
 				"category": "Git"
 			},
 			{
 				"command": "kbn-git.commitStagedAmend",
-				"title": "Commit Staged (Amend) - Kanbanize",
+				"title": "Commit Staged (Amend) - Work Item",
 				"category": "Git"
 			},
 			{
 				"command": "kbn-git.commitAll",
-				"title": "Commit All - Kanbanize",
+				"title": "Commit All - Work Item",
 				"category": "Git"
 			},
 			{
 				"command": "kbn-git.commitAllAmend",
-				"title": "Commit All (Amend) - Kanbanize",
+				"title": "Commit All (Amend) - Work Item",
 				"category": "Git"
 			}
 		],
@@ -46,6 +50,22 @@
 			"scm/title": [
 				{
 					"command": "kbn-git.commit",
+					"group": "kbn-git"
+				},
+				{
+					"command": "kbn-git.commitStaged",
+					"group": "kbn-git"
+				},
+				{
+					"command": "kbn-git.commitStagedAmend",
+					"group": "kbn-git"
+				},
+				{
+					"command": "kbn-git.commitAll",
+					"group": "kbn-git"
+				},
+				{
+					"command": "kbn-git.commitAllAmend",
 					"group": "kbn-git"
 				}
 			]
