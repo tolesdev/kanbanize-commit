@@ -46,11 +46,9 @@ export function activate(context: ExtensionContext) {
 	// 	}
 	// })
 
+	const commit = (messageParts: any[]) => git.commit(messageParts);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = commands.registerCommand('kbn-git.commit', () => {
+	const preCommit = command => {
 		// The code you place here will be executed every time your command is executed
 		git.revparse(['--abbrev-ref', 'HEAD'], (currentBranch: string) => {
 			window.showInputBox({
@@ -58,12 +56,12 @@ export function activate(context: ExtensionContext) {
 				placeHolder: 'chore: Adding additional logging',
 				prompt: 'Commit Message'
 			})
-			.then(commitMessage => {
+			.then((commitMessage: string) => {
 				window.showInputBox({
 					ignoreFocusOut: true,
 					prompt: 'Commit Details'
 				})
-				.then(commitDetails => {
+				.then((commitDetails: string) => {
 					let kanbanizeId;
 					if (currentBranch) {
 						// @ts-ignore
@@ -74,7 +72,7 @@ export function activate(context: ExtensionContext) {
 					window.showInputBox({
 						ignoreFocusOut: true,
 						value: kanbanizeId,
-						valueSelection: [0,0],
+						valueSelection: [0, 0],
 						prompt: 'Kanbanize Card ID',
 						// validateInput(value) {
 						// 	if (/[0-9]*/.test(value)) {
@@ -84,10 +82,10 @@ export function activate(context: ExtensionContext) {
 						// 	return 'An invalid ID was .'
 						// }
 					})
-					.then(kbnId => {
-						try {
-							const cardId = `#id ${kbnId}`;
-							git.commit([commitMessage, commitDetails, cardId]);
+						.then((kbnId: string) => {
+							try {
+								const cardId = `#id ${kbnId}`;
+								command([commitMessage, commitDetails, cardId]);
 							window.showInformationMessage(`Commit tagged with Kanbanize ID ${kbnId}`);
 						}
 						catch (e) {
@@ -97,7 +95,12 @@ export function activate(context: ExtensionContext) {
 				})
 			})
 		});
-		// commands.executeCommand('git.commit', )
+	}
+	// The command has been defined in the package.json file
+	// Now provide the implementation of the command with registerCommand
+	// The commandId parameter must match the command field in package.json
+	let disposable = commands.registerCommand('kbn-git.commit', () => {
+		preCommit(commit);
 	});
 
 	context.subscriptions.push(disposable);
