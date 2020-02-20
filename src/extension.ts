@@ -1,7 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { ExtensionContext, window, commands, workspace, } from 'vscode';
-const Git = require('simple-git');
+import { ExtensionContext, window, commands, workspace, ProgressLocation, Progress, CancellationToken, } from 'vscode';
+// const Git = require('simple-git/promise');
+import Git from 'simple-git/promise';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -15,49 +16,76 @@ export function activate(context: ExtensionContext) {
 	const commitAllAmend = (messageParts: any[]) => git.commit(messageParts, undefined, { '-a': null, '--amend': null });
 
 	// @ts-ignore
-	const preCommit = command => {
+	const preCommit = command => new Promise((resolve, reject) => {
 		// The code you place here will be executed every time your command is executed
-		git.revparse(['--abbrev-ref', 'HEAD'], (currentBranch: string) => {
-			window.showInputBox({
+		git.revparse(['--abbrev-ref', 'HEAD']).then(currentBranch => {
+
+			const commitOpts = {
 				ignoreFocusOut: true,
 				placeHolder: 'chore: Adding additional logging',
 				prompt: 'Commit Message'
-			})
-			// @ts-ignore
-			.then((commitMessage: string) => {
-				window.showInputBox({
+			};
+
+			// #1 Prompt for first commit message
+			window.showInputBox(commitOpts).then(commitMessage => {
+				const detailsOpts = {
 					ignoreFocusOut: true,
 					prompt: 'Commit Details'
-				})
+				};
+
+				// #2 Prompt for details commit message
 				// @ts-ignore
-				.then((commitDetails: string) => {
+				window.showInputBox(detailsOpts).then((commitDetails: string) => {
 					let kanbanizeId;
+
 					if (currentBranch) {
 						// @ts-ignore
-						const [, id] = currentBranch.match(/[^\/]*([0-9]*)/);
+						const [id] = currentBranch.match(/[0-9]+/);
 						kanbanizeId = id;
 					}
 
-					window.showInputBox({
+					const idOpts = {
+						value: kanbanizeId,
 						ignoreFocusOut: true,
 						placeHolder: '02022020',
-						value: kanbanizeId,
-						valueSelection: [0, 0],
 						prompt: 'Kanbanize Card ID',
-						// validateInput(value) {
-						// 	if (/[0-9]*/.test(value)) {
-						// 		return null;
-						// 	}
-						// 	// Return error message
-						// 	return 'An invalid ID was .'
-						// }
-					})
-					// @ts-ignore
-					.then((kbnId: string) => {
+						validateInput(value: string) {
+							if (/^[0-9]*$/.test(value)) {
+								return null;
+							}
+							// Return error message
+							return 'ID may only contain numbers.'
+						}
+					};
+					// #3 Prompt for work item id
+					window.showInputBox(idOpts).then(kbnId => {
 						try {
 							const cardId = `#id ${kbnId}`;
-							command([commitMessage, commitDetails, cardId]);
-							window.showInformationMessage(`Commit tagged with Kanbanize ID ${kbnId}`);
+							const commitProgressOpts = {
+								location: ProgressLocation.SourceControl,
+								title: 'Git Commit'
+							};
+
+							const progressHandler = (progress: Progress<{ message?: string, increment?: number }>, token: CancellationToken) => new Promise((resolve, reject) =>
+								// @ts-ignore
+								command([commitMessage, commitDetails, cardId]).then(error => {
+									if (!error) {
+										resolve(`Commit tagged with Kanbanize ID: ${kbnId}`);
+									}
+									else {
+										reject(`Failed to successfully commit files. ${error}`);
+									}
+								})
+							);
+
+							window.withProgress(commitProgressOpts, progressHandler).then(
+								message => {
+									window.showInformationMessage(message as string);
+								},
+								error => {
+									window.showErrorMessage(error.message);
+								}
+							);
 						}
 						catch (e) {
 							window.showErrorMessage(e);
@@ -65,11 +93,9 @@ export function activate(context: ExtensionContext) {
 					})
 				})
 			})
-		});
-	}
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
+		})
+	});
+
 	let commitDispose = commands.registerCommand('kbn-git.commit', () => preCommit(commit));
 	let commitStagedDispose = commands.registerCommand('kbn-git.commitStaged', () => preCommit(commitStaged));
 	let commitStagedAmendDispose = commands.registerCommand('kbn-git.commitStagedAmend', () => preCommit(commitStagedAmend));
